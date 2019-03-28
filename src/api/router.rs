@@ -90,6 +90,10 @@ where
         .to(owner::finalize_tx);
 
     route
+        .post("/v1/wallet/owner/check_repair")
+        .to(owner::check_repair);
+    
+    route
         .post("/v1/wallet/owner/cancel_tx")
         .with_query_string_extractor::<owner::CancelTransactionQueryParams>()
         .to(owner::cancel_tx);
