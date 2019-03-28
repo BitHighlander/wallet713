@@ -194,6 +194,31 @@ pub fn handle_finalize_tx(state: &State, body: &Chunk) -> Result<Response<Body>,
     Ok(create_empty_response(&state, StatusCode::OK))
 }
 
+pub fn check_repair(mut state: State) -> Box<HandlerFuture> {
+    let future = Body::take_from(&mut state)
+        .concat2()
+        .then(|body| match body {
+            Ok(body) => match handle_check_repair(&state, &body) {
+                Ok(res) => future::ok((state, res)),
+                Err(e) => future::err((state, ApiError::new(e).into_handler_error())),
+            },
+            Err(e) => future::err((state, e.into_handler_error())),
+        });
+
+    Box::new(future)
+}
+
+pub fn handle_check_repair(state: &State, body: &Chunk) -> Result<Response<Body>, Error> {
+    trace_state_and_body(state, body);
+    let mut slate: Slate = serde_json::from_slice(&body)?;
+    let container = WalletContainer::borrow_from(&state);
+    let wallet = container.lock()?;
+
+    wallet.check_repair(&mut slate, None)?;
+
+    Ok(create_empty_response(&state, StatusCode::OK))
+}
+
 pub fn cancel_tx(state: State) -> (State, Response<Body>) {
     let res = match handle_cancel_tx(&state) {
         Ok(res) => res,
